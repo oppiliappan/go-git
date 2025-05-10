@@ -63,6 +63,8 @@ type Commit struct {
 	// Encoding is the encoding of the commit.
 	Encoding MessageEncoding
 
+	ExtraHeaders map[string][]byte
+
 	s storer.EncodedObjectStorer
 }
 
@@ -244,7 +246,9 @@ func (c *Commit) Decode(o plumbing.EncodedObject) (err error) {
 				data = split[1]
 			}
 
-			switch string(split[0]) {
+			first := string(split[0])
+
+			switch first {
 			case "tree":
 				c.TreeHash = plumbing.NewHash(string(data))
 			case "parent":
@@ -261,6 +265,8 @@ func (c *Commit) Decode(o plumbing.EncodedObject) (err error) {
 			case headerpgp:
 				c.PGPSignature += string(data) + "\n"
 				pgpsig = true
+			default:
+				c.ExtraHeaders[first] = data
 			}
 		} else {
 			msgbuf.Write(line)
@@ -355,6 +361,11 @@ func (c *Commit) encode(o plumbing.EncodedObject, includeSig bool) (err error) {
 		if _, err = fmt.Fprint(w, strings.Join(lines, "\n ")); err != nil {
 			return err
 		}
+	}
+
+	// encode any extra headers
+	for header, val := range c.ExtraHeaders {
+		fmt.Fprint(w, "\n"+header+" "+string(val))
 	}
 
 	if _, err = fmt.Fprintf(w, "\n\n%s", c.Message); err != nil {
