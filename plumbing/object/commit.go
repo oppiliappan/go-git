@@ -192,6 +192,7 @@ func (c *Commit) Decode(o plumbing.EncodedObject) (err error) {
 
 	c.Hash = o.Hash()
 	c.Encoding = defaultUtf8CommitMessageEncoding
+	c.ExtraHeaders = make(map[string][]byte)
 
 	reader, err := o.Reader()
 	if err != nil {
